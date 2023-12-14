@@ -1,10 +1,13 @@
 #!/usr/bin/python3
 
 from utils.aliyun import aliLink, mqttd, rpi
-import time, json
+from picamera2 import Picamera2
+
+import time, json, base64, cv2
 import RPi.GPIO as GPIO
 import utils.dht11 as dht11
 import utils.led as led
+import utils.license as license
 
 # 三元素（iot后台获取）
 ProductKey = "k0kh4u9Sfng"
@@ -18,6 +21,7 @@ user_get = "/k0kh4u9Sfng/pi-1/user/get"
 user_update = "/k0kh4u9Sfng/pi-1/user/update"
 user_update_err = "/k0kh4u9Sfng/pi-1/user/update/error"
 
+cnt = 0
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 GPIO.cleanup()
@@ -39,10 +43,6 @@ def on_message(client, userdata, msg):
         else:
             led.led_on(col)
 
-    # switch = Msg["params"]["PowerLed"]
-    # rpi.powerLed(switch)
-    # print(msg.payload)  # 开关值
-
 
 # 连接回调（与阿里云建立链接后的回调函数）
 def on_connect(client, userdata, flags, rc):
@@ -63,6 +63,23 @@ mqtt.subscribe(user_update_err)
 mqtt.begin(on_message, on_connect)
 
 
+def get_pic() -> str:
+    # picam2 = Picamera2()
+    global cnt
+    cnt += 1
+    save_path = f"./img/lis_{cnt}.jpg"
+    img = cv2.imread("./lis_1.jpg")
+    cv2.imwrite(save_path, img)
+    return save_path
+    # picam2.start_and_capture_file(save_path)
+    # return save_path
+
+
+def get_base64(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read())
+
+
 # 信息获取上报，每10秒钟上报一次系统参数
 while True:
     time.sleep(2)
@@ -72,20 +89,27 @@ while True:
     humidity = 0
     cpuTemp = float(rpi.getCPUtemperature())
 
-    if result.is_valid():
+    path = get_pic()
+    print(path)
+    num, licenses = license.run(path)
+    print(num, licenses)
+
+    if result.is_valid() and num != 0:
         temperature = result.temperature
         humidity = result.humidity
+        cur_path = f"./license/lis_{cnt}.jpg"
+        code = get_base64(cur_path)
+        print(code)
 
         # 构建与云端模型一致的消息结构
         updateMsn = {
             "temperature": temperature,
             "humidity": humidity,
-            "cpuTemperature": cpuTemp
+            "cpuTemperature": cpuTemp,
+            # "img": code
         }
         JsonUpdataMsn = aliLink.Alink(updateMsn)
         print(JsonUpdataMsn)
 
         mqtt.push(POST, JsonUpdataMsn)  # 定时向阿里云IOT推送我们构建好的Alink协议数据
 
-
-# {"id": 982943, "version": "1.0", "params": {"temperature": 26.7, "humidity": 36.0, "cpuTemperature": 57.4}, "method": "thing.event.property.post"}

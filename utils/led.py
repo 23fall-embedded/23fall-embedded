@@ -5,6 +5,7 @@ ledr = LED(16)
 ledg = LED(21)
 ledy = LED(20)
 
+
 def led_off():
     if ledr.is_lit:
         ledr.off()
@@ -12,6 +13,7 @@ def led_off():
         ledg.off()
     if ledy.is_lit:
         ledy.off()
+
 
 def led_on(col):
     led_off()
