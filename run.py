@@ -111,7 +111,7 @@ while True:
         temperature = result.temperature
         humidity = result.humidity
         cur_path = f"./license/lis_{cnt}.jpg"
-        ssd3306.show(temperature, humidity, licenses)
+        ssd3306.show(temperature, humidity, licenses, 8)
         code = get_base64(cur_path)
         # print(code)
 
