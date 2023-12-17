@@ -1,0 +1,83 @@
+<!--index.wxml-->
+<navigation-bar title="嵌入式" back="{{false}}" color="black" background="#FFF"></navigation-bar>
+<view class="page-container">
+<!-- 头部部分 -->
+  <view class="header-container">
+    <view class="header-air">
+      <!-- <view>山东-威海</view> -->
+      <picker mode="region" bindchange='regionChange'>
+        <view>{{region}}</view>
+      </picker>
+    </view>
+    <view class="header-title">
+      <view>{{now.temp}}℃</view>
+      <view>{{now.text}}</view>
+    </view>
+    <view class="header-ad">
+      <view>能见度: {{now.vis}}km</view>
+    </view>
+  </view>
+
+<!-- 数据部分 -->
+<view class="data-container">
+  <view class="data-card">
+    <image class="data-card-icon" src="/static/images/temperature.png"/>
+    <view class="data-card-text">
+      <view class="data-card-title">温度</view>
+      <view class="data-card-value">0</view>
+    </view>
+  </view>
+  <view class="data-card">
+    <image class="data-card-icon" src="/static/images/humidity.png"/>
+    <view class="data-card-text">
+      <view class="data-card-title">湿度</view>
+      <view class="data-card-value">100%</view>
+    </view>
+  </view>
+  <view class="data-card">
+    <image class="data-card-icon" src="/static/images/alcohol.png"/>
+    <view class="data-card-text">
+      <view class="data-card-title">酒精检测</view>
+      <view class="data-card-value">yes or no</view>
+    </view>
+  </view>
+  <view class="data-card">
+    <image class="data-card-icon" src="/static/images/light.png"/>
+    <view class="data-card-text">
+      <view class="data-card-title">光照强度</view>
+      <view class="data-card-value">0</view>
+    </view>
+  </view>
+  <view class="data-card">
+    <image class="data-card-icon" src="/static/images/fire.png"/>
+    <view class="data-card-text">
+      <view class="data-card-title">火焰</view>
+      <view class="data-card-value">0</view>
+    </view>
+  </view>
+  <view class="data-card">
+    <image class="data-card-icon" src="/static/images/led.png"/>
+    <view class="data-card-text">
+      <view class="data-card-title">灯光状态</view>
+      <view class="data-card-value">0</view>
+    </view>
+  </view>
+  <view class="data-card">
+    <image class="data-card-icon" src="/static/images/switch.png"/>
+    <view class="data-card-text">
+      <view class="data-card-title">开关</view>
+      <view class="data-card-value">
+        <switch checked="" bindchange="" color="#00A4FF"/>
+      </view>
+    </view>
+  </view>
+  <view class="data-card">
+    <view class="data-card-text">
+      <button bindtap="houduan">点击发送请求</button>
+      <view class="data-card-title">测试</view>
+     
+    </view>
+  </view>
+</view>
+</view>
+
