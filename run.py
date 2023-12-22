@@ -10,6 +10,8 @@ import utils.led as led
 import utils.license as license
 import utils.ssd3306 as ssd3306
 
+os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
+
 # 三元素（iot后台获取）
 ProductKey = "k0kh4u9Sfng"
 DeviceName = "pi-1"
@@ -63,24 +65,17 @@ mqtt.subscribe(user_update)
 mqtt.subscribe(user_update_err)
 mqtt.begin(on_message, on_connect)
 
+picam2 = Picamera2()
+
 
 def get_pic() -> str:
     if not os.path.exists("./img"):
         os.makedirs("./img")
-    # picam2 = Picamera2()
     global cnt
     cnt += 1
     save_path = f"./img/lis_{cnt}.jpg"
-    if cnt % 3 == 0:
-        img = cv2.imread("./lis_1.jpg")
-    elif cnt % 3 == 1:
-        img = cv2.imread("./2.jpg")
-    else:
-        img = cv2.imread("./3.jpg")
-    cv2.imwrite(save_path, img)
+    picam2.start_and_capture_file(save_path)
     return save_path
-    # picam2.start_and_capture_file(save_path)
-    # return save_path
 
 
 def get_base64(path):
@@ -93,9 +88,14 @@ def clear():
     shutil.rmtree("./license")
 
 
+if os.path.exists("./img"):
+    shutil.rmtree("./img")
+if os.path.exists("./license"):
+    shutil.rmtree("./license")
+
 # 信息获取上报，每10秒钟上报一次系统参数
 while True:
-    time.sleep(2)
+    time.sleep(10)
     result = instance.read()
 
     temperature = 0
@@ -106,6 +106,8 @@ while True:
     # print(path)
     num, licenses = license.run(path)
     # print(num, licenses)
+
+    print(result.is_valid(), num)
 
     if result.is_valid() and num != 0:
         temperature = result.temperature
@@ -129,4 +131,3 @@ while True:
             clear()
 
         mqtt.push(POST, JsonUpdataMsn)  # 定时向阿里云IOT推送我们构建好的Alink协议数据
-
