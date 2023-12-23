@@ -26,6 +26,7 @@ SET = "/sys/k0kh4u9Sfng/pi-1/thing/service/property/set"  # 订阅云端指令
 user_get = "/k0kh4u9Sfng/pi-1/user/get"
 user_update = "/k0kh4u9Sfng/pi-1/user/update"
 user_update_err = "/k0kh4u9Sfng/pi-1/user/update/error"
+user_send_check = "/k0kh4u9Sfng/pi-1/user/send/check"
 
 cnt = 0
 GPIO.setwarnings(False)
@@ -37,12 +38,37 @@ weatherNow = weather.checkWeatherNow()
 mq3 = MQ3.MQ3(15)
 f = fire.fire(24)
 
+# 链接信息
+Server, ClientId, userName, Password = aliLink.linkiot(
+    DeviceName, ProductKey, DeviceSecret
+)
+
+
+# mqtt链接
+mqtt = mqttd.MQTT(Server, ClientId, userName, Password)
+mqtt.subscribe(SET)  # 订阅服务器下发消息topic
+mqtt.subscribe(user_get)
+mqtt.subscribe(user_update)
+mqtt.subscribe(user_update_err)
+
+
+picam2 = Picamera2()
+picam2.options["quality"] = 50
+picam2.options["compress_level"] = 9
+picam2.still_configuration.size = (640, 480)
+
 
 # 消息回调（云端下发消息的回调函数）
 def on_message(client, userdata, msg):
     print(msg.payload)
+    print(msg.topic)
     # Msg = msg.payload.decode('utf-8')
     Msg = json.loads(msg.payload)
+    if msg.topic == user_get:
+        mqtt.push(user_send_check, msg.payload)
+    else:
+        return
+
     print(Msg)
     if "loc" in Msg and "adm" in Msg:
         global weatherNow
@@ -61,23 +87,7 @@ def on_connect(client, userdata, flags, rc):
     pass
 
 
-# 链接信息
-Server, ClientId, userName, Password = aliLink.linkiot(
-    DeviceName, ProductKey, DeviceSecret
-)
-
-# mqtt链接
-mqtt = mqttd.MQTT(Server, ClientId, userName, Password)
-mqtt.subscribe(SET)  # 订阅服务器下发消息topic
-mqtt.subscribe(user_get)
-mqtt.subscribe(user_update)
-mqtt.subscribe(user_update_err)
 mqtt.begin(on_message, on_connect)
-
-picam2 = Picamera2()
-picam2.options["quality"] = 50
-picam2.options["compress_level"] = 9
-picam2.still_configuration.size = (640, 480)
 
 
 def get_pic() -> str:
@@ -144,7 +154,7 @@ try:
                 "mq3": mq3_result,
                 "fire": fire_result,
                 "light": light_result,
-                "licenses": licenses
+                "licenses": licenses,
             }
             JsonUpdataMsn = aliLink.Alink(updateMsn)
             print(JsonUpdataMsn)
