@@ -13,7 +13,32 @@ Page({
       temp: 0,
       text: '未知',
       vis: 0
-    }
+    },
+
+    LEDarray: ['off', 'red', 'yellow', 'green', 'all'],
+    objectArray: [
+      {
+        id: 0,
+        name: 'off'
+      },
+      {
+        id: 1,
+        name: 'red'
+      },
+      {
+        id: 2,
+        name: 'yellow'
+      },
+      {
+        id: 3,
+        name: 'green'
+      },
+      {
+        id: 4,
+        name: 'all'
+      }
+    ],
+    LEDindex: 0
   },
   //触发事件
   houduan: function () {
@@ -71,6 +96,33 @@ Page({
       }
     )
     
+  },
+
+  LEDChange: function(e) {
+    this.setData({
+      LEDindex: e.detail.value
+    })
+    console.log(e.detail.value);
+    wx.request({
+      url: 'http://localhost:8080/LED',
+      data: {
+        "LEDid": e.detail.value
+      },
+      header: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      method: 'POST',
+      success() {
+        console.log('LED success');
+      }
+    })
+  },
+
+  gotoLicense: function() {
+    wx.navigateTo({      
+      url: '../license/license',    //要跳转到的页面路径
+    })
+    console.log('okok'); 
   },
 
   onLoad() {

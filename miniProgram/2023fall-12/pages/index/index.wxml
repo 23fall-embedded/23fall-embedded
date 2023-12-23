@@ -44,7 +44,7 @@
   <view class="data-card">
     <image class="data-card-icon" src="/static/images/light.png"/>
     <view class="data-card-text">
-      <view class="data-card-title">光照强度</view>
+      <view class="data-card-title">光照</view>
       <view class="data-card-value">0</view>
     </view>
   </view>
@@ -55,20 +55,23 @@
       <view class="data-card-value">0</view>
     </view>
   </view>
-  <view class="data-card">
-    <image class="data-card-icon" src="/static/images/led.png"/>
-    <view class="data-card-text">
-      <view class="data-card-title">灯光状态</view>
-      <view class="data-card-value">0</view>
-    </view>
-  </view>
+  
   <view class="data-card">
     <image class="data-card-icon" src="/static/images/switch.png"/>
     <view class="data-card-text">
-      <view class="data-card-title">开关</view>
-      <view class="data-card-value">
-        <switch checked="" bindchange="" color="#00A4FF"/>
-      </view>
+      <view class="data-card-title">LED控制</view>
+      <picker bindchange="LEDChange" mode="selector" value="{{LEDindex}}" range="{{LEDarray}}">
+        <view class="picker">
+          <view class="data-card-value">请选择:{{LEDarray[LEDindex]}}</view>
+        </view>
+      </picker>
+    </view>
+  </view>
+  <view class="data-card" bind:tap="gotoLicense">
+    <image class="data-card-icon" src="/static/images/car.png"/>
+    <view class="data-card-text">
+      <view class="data-card-title">车牌检测</view>
+      <view class="data-card-value">0</view>
     </view>
   </view>
   <view class="data-card">
