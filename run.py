@@ -34,8 +34,8 @@ GPIO.cleanup()
 
 instance = dht11.DHT11(17)
 weatherNow = weather.checkWeatherNow()
-mq3 = MQ3(15)
-f = fire(24)
+mq3 = MQ3.MQ3(15)
+f = fire.fire(24)
 
 
 # 消息回调（云端下发消息的回调函数）
@@ -76,7 +76,8 @@ mqtt.begin(on_message, on_connect)
 
 picam2 = Picamera2()
 picam2.options["quality"] = 50
-picam2.options["compress_level"] = 3
+picam2.options["compress_level"] = 9
+picam2.still_configuration.size = (640, 480)
 
 
 def get_pic() -> str:
@@ -85,7 +86,8 @@ def get_pic() -> str:
     global cnt
     cnt += 1
     save_path = f"./img/lis_{cnt}.jpg"
-    picam2.start_and_capture_file(save_path)
+    picam2.start(show_preview=False)
+    picam2.switch_mode_and_capture_file("still", save_path)
     return save_path
 
 
@@ -106,52 +108,55 @@ if os.path.exists("./license"):
 
 
 # 信息获取上报，每10秒钟上报一次系统参数
-while True:
-    time.sleep(10)
-    result = instance.read()
+try:
+    while True:
+        time.sleep(10)
+        result = instance.read()
 
-    temperature = 0
-    humidity = 0
-    mq3_result = mq3.check()
-    fire_result = f.check()
-    light_result = 0
-    code = "1234"
+        temperature = 0
+        humidity = 0
+        mq3_result = mq3.check()
+        fire_result = f.check()
+        light_result = 0
+        code = "1234"
 
-    path = get_pic()
-    # print(path)
-    num, licenses = license.run(path)
+        path = get_pic()
+        # print(path)
+        num, licenses = license.run(path)
 
-    print(result.is_valid(), num)
+        print(result.is_valid(), num)
 
-    if result.is_valid():
-        temperature = result.temperature
-        humidity = result.humidity
-        ssd3306.show(temperature, humidity, licenses, 8)
-        if num != 0:
-            cur_path = f"./license/lis_{cnt}.jpg"
-            code = str(get_base64(cur_path))
-        ssd3306.show2(str(len(code.encode())), "?", 9)
-        # print(code, type(code))
+        if result.is_valid():
+            temperature = result.temperature
+            humidity = result.humidity
+            ssd3306.show(temperature, humidity, licenses, 8)
+            if num != 0:
+                cur_path = f"./license/lis_{cnt}.jpg"
+                code = str(get_base64(cur_path))
+            ssd3306.show2(str(len(code.encode())), "?", 9)
+            # print(code, type(code))
 
-        # 构建与云端模型一致的消息结构
-        updateMsn = {
-            "temperature": temperature,
-            "humidity": humidity,
-            "img": code,
-            "mq3": mq3_result,
-            "fire": fire_result,
-            "light": light_result,
-        }
-        JsonUpdataMsn = aliLink.Alink(updateMsn)
-        print(JsonUpdataMsn)
+            # 构建与云端模型一致的消息结构
+            updateMsn = {
+                "temperature": temperature,
+                "humidity": humidity,
+                "img": code,
+                "mq3": mq3_result,
+                "fire": fire_result,
+                "light": light_result,
+            }
+            JsonUpdataMsn = aliLink.Alink(updateMsn)
+            print(JsonUpdataMsn)
 
-        if cnt % 60 == 0:
-            clear()
+            if cnt % 60 == 0:
+                clear()
 
-        mqtt.push(POST, JsonUpdataMsn)  # 定时向阿里云IOT推送我们构建好的Alink协议数据
+            mqtt.push(POST, JsonUpdataMsn)  # 定时向阿里云IOT推送我们构建好的Alink协议数据
 
-    ssd3306.show2(
-        f"现在天气状况：{weatherNow['text']}，温度：{weatherNow['temp']}°C，体感温度：{weatherNow['feelsLike']}°C，湿度：{weatherNow['humidity']}%，风向风力：{weatherNow['windDir']}{weatherNow['windScale']}级",
-        "，",
-        9,
-    )
+        ssd3306.show2(
+            f"现在天气状况：{weatherNow['text']}，温度：{weatherNow['temp']}°C，体感温度：{weatherNow['feelsLike']}°C，湿度：{weatherNow['humidity']}%，风向风力：{weatherNow['windDir']}{weatherNow['windScale']}级",
+            "，",
+            9,
+        )
+except KeyboardInterrupt:
+    GPIO.cleanup()
