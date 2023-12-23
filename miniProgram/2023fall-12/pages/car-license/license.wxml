@@ -1,0 +1,7 @@
+<!--pages/license.wxml-->
+<text>你好</text>
+<block wx:for="{{licenseArray}}">
+  <view>{{item}}</view>
+</block>
+<image src="{{license_img}}" mode=""/>
+<view bind:tap="goback">返回</view>

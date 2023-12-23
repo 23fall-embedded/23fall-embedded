@@ -2,7 +2,7 @@
   "pages": [
     "pages/index/index",
     "pages/logs/logs",
-    "pages/license/license"
+    "pages/car-license/license"
   ],
   "window": {
     "navigationBarTextStyle": "black",
