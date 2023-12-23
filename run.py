@@ -144,6 +144,7 @@ try:
                 "mq3": mq3_result,
                 "fire": fire_result,
                 "light": light_result,
+                "licenses": licenses
             }
             JsonUpdataMsn = aliLink.Alink(updateMsn)
             print(JsonUpdataMsn)
