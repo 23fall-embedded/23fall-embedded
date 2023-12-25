@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
 from utils.aliyun import aliLink, mqttd, rpi
@@ -12,6 +13,7 @@ import utils.ssd3306 as ssd3306
 import utils.weather as weather
 import utils.MQ3 as MQ3
 import utils.fire as fire
+import utils.light as light
 
 os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
 
@@ -26,6 +28,7 @@ SET = "/sys/k0kh4u9Sfng/pi-1/thing/service/property/set"  # 订阅云端指令
 user_get = "/k0kh4u9Sfng/pi-1/user/get"
 user_update = "/k0kh4u9Sfng/pi-1/user/update"
 user_update_err = "/k0kh4u9Sfng/pi-1/user/update/error"
+user_send_check = "/k0kh4u9Sfng/pi-1/user/send/check"
 
 cnt = 0
 GPIO.setwarnings(False)
@@ -36,13 +39,39 @@ instance = dht11.DHT11(17)
 weatherNow = weather.checkWeatherNow()
 mq3 = MQ3.MQ3(15)
 f = fire.fire(24)
+l = light.light(26)
+
+# 链接信息
+Server, ClientId, userName, Password = aliLink.linkiot(
+    DeviceName, ProductKey, DeviceSecret
+)
+
+
+# mqtt链接
+mqtt = mqttd.MQTT(Server, ClientId, userName, Password)
+mqtt.subscribe(SET)  # 订阅服务器下发消息topic
+mqtt.subscribe(user_get)
+mqtt.subscribe(user_update)
+mqtt.subscribe(user_update_err)
+
+
+picam2 = Picamera2()
+picam2.options["quality"] = 50
+picam2.options["compress_level"] = 9
+picam2.still_configuration.size = (640, 480)
 
 
 # 消息回调（云端下发消息的回调函数）
 def on_message(client, userdata, msg):
     print(msg.payload)
-    # Msg = msg.payload.decode('utf-8')
-    Msg = json.loads(msg.payload)
+    print(msg.topic)
+    Msg = msg.payload.decode("gbk")
+    Msg = json.loads(Msg)
+    if msg.topic == user_get:
+        mqtt.push(user_send_check, msg.payload)
+    else:
+        return
+
     print(Msg)
     if "loc" in Msg and "adm" in Msg:
         global weatherNow
@@ -61,23 +90,7 @@ def on_connect(client, userdata, flags, rc):
     pass
 
 
-# 链接信息
-Server, ClientId, userName, Password = aliLink.linkiot(
-    DeviceName, ProductKey, DeviceSecret
-)
-
-# mqtt链接
-mqtt = mqttd.MQTT(Server, ClientId, userName, Password)
-mqtt.subscribe(SET)  # 订阅服务器下发消息topic
-mqtt.subscribe(user_get)
-mqtt.subscribe(user_update)
-mqtt.subscribe(user_update_err)
 mqtt.begin(on_message, on_connect)
-
-picam2 = Picamera2()
-picam2.options["quality"] = 50
-picam2.options["compress_level"] = 9
-picam2.still_configuration.size = (640, 480)
 
 
 def get_pic() -> str:
@@ -110,14 +123,14 @@ if os.path.exists("./license"):
 # 信息获取上报，每10秒钟上报一次系统参数
 try:
     while True:
-        time.sleep(10)
+        time.sleep(2)
         result = instance.read()
 
         temperature = 0
         humidity = 0
         mq3_result = mq3.check()
         fire_result = f.check()
-        light_result = 0
+        light_result = l.check()
         code = "1234"
 
         path = get_pic()
@@ -138,13 +151,13 @@ try:
 
             # 构建与云端模型一致的消息结构
             updateMsn = {
-                "temperature": temperature,
-                "humidity": humidity,
-                "img": code,
-                "mq3": mq3_result,
-                "fire": fire_result,
-                "light": light_result,
-                "licenses": licenses
+                "temperature": [temperature],
+                "humidity": [humidity],
+                "img": [code],
+                "mq3": [mq3_result],
+                "fire": [fire_result],
+                "light": [light_result],
+                "licenses": licenses,
             }
             JsonUpdataMsn = aliLink.Alink(updateMsn)
             print(JsonUpdataMsn)
