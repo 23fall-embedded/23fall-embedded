@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
 from utils.aliyun import aliLink, mqttd, rpi
@@ -12,6 +13,7 @@ import utils.ssd3306 as ssd3306
 import utils.weather as weather
 import utils.MQ3 as MQ3
 import utils.fire as fire
+import utils.light as light
 
 os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
 
@@ -37,6 +39,7 @@ instance = dht11.DHT11(17)
 weatherNow = weather.checkWeatherNow()
 mq3 = MQ3.MQ3(15)
 f = fire.fire(24)
+l = light.light(26)
 
 # 链接信息
 Server, ClientId, userName, Password = aliLink.linkiot(
@@ -62,8 +65,8 @@ picam2.still_configuration.size = (640, 480)
 def on_message(client, userdata, msg):
     print(msg.payload)
     print(msg.topic)
-    # Msg = msg.payload.decode('utf-8')
-    Msg = json.loads(msg.payload)
+    Msg = msg.payload.decode("gbk")
+    Msg = json.loads(Msg)
     if msg.topic == user_get:
         mqtt.push(user_send_check, msg.payload)
     else:
@@ -120,14 +123,14 @@ if os.path.exists("./license"):
 # 信息获取上报，每10秒钟上报一次系统参数
 try:
     while True:
-        time.sleep(10)
+        time.sleep(2)
         result = instance.read()
 
         temperature = 0
         humidity = 0
         mq3_result = mq3.check()
         fire_result = f.check()
-        light_result = 0
+        light_result = l.check()
         code = "1234"
 
         path = get_pic()
@@ -148,12 +151,12 @@ try:
 
             # 构建与云端模型一致的消息结构
             updateMsn = {
-                "temperature": temperature,
-                "humidity": humidity,
-                "img": code,
-                "mq3": mq3_result,
-                "fire": fire_result,
-                "light": light_result,
+                "temperature": [temperature],
+                "humidity": [humidity],
+                "img": [code],
+                "mq3": [mq3_result],
+                "fire": [fire_result],
+                "light": [light_result],
                 "licenses": licenses,
             }
             JsonUpdataMsn = aliLink.Alink(updateMsn)
