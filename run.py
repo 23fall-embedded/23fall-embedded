@@ -40,6 +40,8 @@ weatherNow = weather.checkWeatherNow()
 mq3 = MQ3.MQ3(15)
 f = fire.fire(24)
 l = light.light(26)
+loc = "环翠区"
+adm = "威海市"
 
 # 链接信息
 Server, ClientId, userName, Password = aliLink.linkiot(
@@ -67,15 +69,13 @@ def on_message(client, userdata, msg):
     print(msg.topic)
     Msg = msg.payload.decode("gbk")
     Msg = json.loads(Msg)
-    if msg.topic == user_get:
-        mqtt.push(user_send_check, msg.payload)
-    else:
-        return
 
     print(Msg)
     if "loc" in Msg and "adm" in Msg:
-        global weatherNow
-        weatherNow = weather.checkWeatherNow(Msg["loc"], Msg["adm"])
+        global weatherNow, loc, adm
+        loc = Msg["loc"]
+        adm = Msg["adm"]
+        weatherNow = weather.checkWeatherNow(loc, adm)
     if "led" in Msg:
         col = Msg["led"]
         print(col)
@@ -99,6 +99,7 @@ def get_pic() -> str:
     global cnt
     cnt += 1
     save_path = f"./img/lis_{cnt}.jpg"
+    # save_path = "./lis_1.jpg"
     picam2.start(show_preview=False)
     picam2.switch_mode_and_capture_file("still", save_path)
     return save_path
@@ -120,10 +121,10 @@ if os.path.exists("./license"):
     shutil.rmtree("./license")
 
 
-# 信息获取上报，每10秒钟上报一次系统参数
+# 信息获取上报，每5秒钟上报一次系统参数
 try:
     while True:
-        time.sleep(2)
+        time.sleep(5)
         result = instance.read()
 
         temperature = 0
@@ -145,8 +146,8 @@ try:
             ssd3306.show(temperature, humidity, licenses, 8)
             if num != 0:
                 cur_path = f"./license/lis_{cnt}.jpg"
+                # cur_path = "./license/lis_1.jpg"
                 code = str(get_base64(cur_path))
-            ssd3306.show2(str(len(code.encode())), "?", 9)
             # print(code, type(code))
 
             # 构建与云端模型一致的消息结构
@@ -168,7 +169,7 @@ try:
             mqtt.push(POST, JsonUpdataMsn)  # 定时向阿里云IOT推送我们构建好的Alink协议数据
 
         ssd3306.show2(
-            f"现在天气状况：{weatherNow['text']}，温度：{weatherNow['temp']}°C，体感温度：{weatherNow['feelsLike']}°C，湿度：{weatherNow['humidity']}%，风向风力：{weatherNow['windDir']}{weatherNow['windScale']}级",
+            f"{adm}{loc}天气状况：{weatherNow['text']}，温度：{weatherNow['temp']}°C，体感温度：{weatherNow['feelsLike']}°C，湿度：{weatherNow['humidity']}%，风向风力：{weatherNow['windDir']}{weatherNow['windScale']}级",
             "，",
             9,
         )
