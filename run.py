@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/python3
 
-from utils.aliyun import aliLink, mqttd, rpi
+from utils.aliyun import aliLink, mqttd
 from picamera2 import Picamera2
+from decimal import Decimal
 
 import time, json, base64, cv2, shutil, os
 import RPi.GPIO as GPIO
@@ -11,9 +12,11 @@ import utils.led as led
 import utils.license as license
 import utils.ssd3306 as ssd3306
 import utils.weather as weather
-import utils.MQ3 as MQ3
+
+# import utils.MQ3 as MQ3
 import utils.fire as fire
 import utils.light as light
+import utils.pcf8591 as pcf8591
 
 os.environ.pop("QT_QPA_PLATFORM_PLUGIN_PATH")
 
@@ -37,9 +40,11 @@ GPIO.cleanup()
 
 instance = dht11.DHT11(17)
 weatherNow = weather.checkWeatherNow()
-mq3 = MQ3.MQ3(15)
 f = fire.fire(24)
 l = light.light(26)
+led1 = led.led(16, 21, 20)
+led2 = led.led(10, 11, 9)
+alcohol = 1000
 loc = "环翠区"
 adm = "威海市"
 
@@ -62,6 +67,8 @@ picam2.options["quality"] = 50
 picam2.options["compress_level"] = 9
 picam2.still_configuration.size = (640, 480)
 
+pcf8591.regulate()
+
 
 # 消息回调（云端下发消息的回调函数）
 def on_message(client, userdata, msg):
@@ -71,6 +78,9 @@ def on_message(client, userdata, msg):
     Msg = json.loads(Msg)
 
     print(Msg)
+    if "alc" in Msg:
+        global alcohol
+        alcohol = Msg["alc"]
     if "loc" in Msg and "adm" in Msg:
         global weatherNow, loc, adm
         loc = Msg["loc"]
@@ -80,9 +90,9 @@ def on_message(client, userdata, msg):
         col = Msg["led"]
         print(col)
         if col == "off":
-            led.led_off()
+            led1.led_off("all")
         else:
-            led.led_on(col)
+            led1.led_on(col)
 
 
 # 连接回调（与阿里云建立链接后的回调函数）
@@ -129,7 +139,9 @@ try:
 
         temperature = 0
         humidity = 0
-        mq3_result = mq3.check()
+        mq3_result = float(
+            Decimal(pcf8591.get()).quantize(Decimal("0.01"), rounding="ROUND_HALF_UP")
+        )
         fire_result = f.check()
         light_result = l.check()
         code = "1234"
@@ -137,6 +149,21 @@ try:
         path = get_pic()
         # print(path)
         num, licenses = license.run(path)
+
+        if fire_result:
+            led2.led_on("red")
+        else:
+            led2.led_off("red")
+
+        if light_result:
+            led2.led_on("yellow")
+        else:
+            led2.led_off("yellow")
+
+        if mq3_result >= alcohol:
+            led2.led_on("green")
+        else:
+            led2.led_off("green")
 
         print(result.is_valid(), num)
 
