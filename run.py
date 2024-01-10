@@ -80,7 +80,7 @@ def on_message(client, userdata, msg):
     print(Msg)
     if "alc" in Msg:
         global alcohol
-        alcohol = Msg["alc"]
+        alcohol = float(Msg["alc"])
     if "loc" in Msg and "adm" in Msg:
         global weatherNow, loc, adm
         loc = Msg["loc"]
@@ -110,7 +110,7 @@ def get_pic() -> str:
     cnt += 1
     save_path = f"./img/lis_{cnt}.jpg"
     # save_path = "./lis_1.jpg"
-    picam2.start(show_preview=False)
+    picam2.start(show_preview=True)
     picam2.switch_mode_and_capture_file("still", save_path)
     return save_path
 
@@ -167,7 +167,7 @@ try:
 
         print(result.is_valid(), num)
 
-        if result.is_valid():
+        if True:
             temperature = result.temperature
             humidity = result.humidity
             ssd3306.show(temperature, humidity, licenses, 8)
